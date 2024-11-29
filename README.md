@@ -3,7 +3,7 @@
 A simple project that is a NestJS app that runs and every 8 secconds calls an api to retrieve devices data and then sends it to HomeAssistant Trackar server.
 It runs on Docker so it runs as a HomeAssistant addon that can be stopped | started via it.
 
-It's quite a simple project, but does what I need and has been working for a year straigt
+It's quite a simple project, but does what I need and has been working for a year straight.
 
 ----------------------------------------------------------------------------------
 
