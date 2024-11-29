@@ -1,3 +1,12 @@
+# HomeAssistantTrackarCron
+
+A simple project that is a NestJS app that runs and every 8 secconds calls an api to retrieve devices data and then sends it to HomeAssistant Trackar server.
+It runs on Docker so it runs as a HomeAssistant addon that can be stopped | started via it.
+
+It's quite a simple project, but does what I need and has been working for a year straight.
+
+----------------------------------------------------------------------------------
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
