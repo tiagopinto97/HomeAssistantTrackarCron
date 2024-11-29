@@ -1,0 +1,13 @@
+{
+    "log_level": "info",
+    "ports": {
+      "3000/tcp": 3000
+    },
+    "schema": "config.json",
+    "homeassistant": {
+      "name": "hatc",
+      "description": "Run my Node.js app",
+      "icon": "mdi:nodejs",
+      "documentation": "https://github.com/your-username/my-node-app-addon"
+    }
+  }

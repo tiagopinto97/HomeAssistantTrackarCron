@@ -1,0 +1,10 @@
+name: "HomeAssistantTrackarCron"
+description: "My first real add-on!"
+version: "1.0.0"
+slug: "hatc"
+init: true
+arch:
+  - i386
+ports:
+  3000/tcp: 3000
+host_network: true
