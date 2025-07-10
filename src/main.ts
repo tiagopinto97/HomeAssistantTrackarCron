@@ -34,7 +34,8 @@ async function getToken() {
  * @returns if the timestamp is within desired timeline
  */
 function isTimestampWithinLast24h(timestamp: string): boolean {
-  const givenDate = new Date(timestamp);
+  const cleanedTimestamp = timestamp.replace(' ', 'T');
+  const givenDate = new Date(cleanedTimestamp);
   const now = new Date();
   const limitTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   return givenDate > limitTime;
@@ -96,14 +97,13 @@ function battPercentage(batt: string) {
   const numericValue = parseFloat(batt);
 
   if (isNaN(numericValue)) {
-    return 0;
+    return '0';
   }
 
   percentage = ((numericValue - 11.0) / 2) * 100
-  if (percentage > 100) return 100;
-  if (percentage < 0) return 0;
-  return percentage;
-
+  if (percentage > 100) percentage = 100;
+  if (percentage < 0) percentage = 0;
+  return percentage.toString();
 }
 
 
@@ -138,13 +138,22 @@ async function updateDevicesToTraccar() {
         extractJsonObject(res.data)
           .then(async jsonObject => {
             for (const x of jsonObject.devices) {
-              if (isTimestampWithinLast24h(x.positionTime) || x.dy > 9) {
-                const updUrl = `${env.BASE_URL}/?id=${x.id}&lat=${x.lat}&lon=${x.lng}&speed=${x.speed}&batt=${battPercentage(x.dy)}&timestamp=${x.positionTime}`;
+              if (isTimestampWithinLast24h(x.positionTime)) {
+                const data = {
+                  id: x.id,
+                  lat: x.lat,
+                  lon: x.lng,
+                  speed: x.speed,
+                  bearing: x.course, 
+                  batt: battPercentage(x.dy),
+                  timestamp: x.positionTime
+                };
+                const updUrl = `${env.BASE_URL}/?${new URLSearchParams(data).toString()}`;
+
 
                 let config = {
                   method: 'get',
                   url: updUrl,
-                  headers: {}
                 };
 
                 try {
