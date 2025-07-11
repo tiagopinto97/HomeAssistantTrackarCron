@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import axios from 'axios';
-import * as express from 'express';
+import express from 'express';
 import { env } from 'process';
 const xml2js = require('xml2js');
 
