@@ -151,53 +151,61 @@ async function updateDevicesToTraccar() {
                     authorization: 'Bearer ' + env.HATOKEN,
                   }
                 };
-                /*
+
+
                 const trackerArgs = [
                   { name: 'ID', key: '_id', value: x.id },
-                //  { key: '_bearing', value: x.course },
-                //  { key: '_timestamp', value: x.positionTime },
                   { name: 'Latitude', key: '_latitude', value: x.lat },
                   { name: 'Longitude', key: '_longitude', value: x.lng },
                   { name: 'Speed', key: '_speed', value: x.speed },
-                  { name: 'Battery', key: '_battery', value: x.dy },
+                  { name: 'Battery Voltage', key: '_battery_voltage', value: x.dy },
+                  { name: 'Battery Level', key: '_battery_level', value: battPercentage(x.dy) },
+                  { name: 'Device Name', key: '_device_name', value: x.name },
+                  { name: 'Position Time', key: '_position_time', value: x.positionTime },
+                  { name: 'Is Stop', key: '_is_stop', value: x.isStop },
+                  { name: 'Network', key: '_network', value: x.signal },
+                  { name: 'GPS', key: '_gps', value: x.satellite },
+                  { name: 'Glonass', key: '_glonass', value: x.satellitegl },
+                  { name: 'Beidou', key: '_beidou', value: x.satellitebd },
                 ]
 
-                //1 request per entity
-                for (const arg of trackerArgs) {
-                  const argConf = {
-                    ...baseConfig,
-                    url: `${updUrl}sensor.micodus_${deviceName}${arg.key}`,
-                    data: {
-                      state: arg.value,
-                      attributes: {
-                        name: `${x.name} - ${arg.name}`
-                      }
-                    },
-                  }
-                  await axios.request(argConf);
-                }
 
-                */
+
 
                 try {
                   await delay(1000)
+                  //1 request per entity
+                  for (const arg of trackerArgs) {
+                    const argConf = {
+                      ...baseConfig,
+                      url: `${updUrl}sensor.micodus_${deviceName}${arg.key}`,
+                      data: {
+                        state: arg.value,
+                      },
+                    }
+                    await axios.request(argConf);
+                  }
+
+                  const entityData = {
+                    state: '',
+                    attributes: Object.fromEntries(
+                      trackerArgs.map(arg => {
+                        const key = arg.key.includes("_")
+                          ? arg.key.split(/_(.+)/, 2)[1] 
+                          : arg.key                      
+                        return [key, arg.value]
+                      })
+                    )
+                  }
+                  console.log('test', x, entityData)
+
                   await axios.request({
                     ...baseConfig,
                     url: `${updUrl}device_tracker.micodus_${deviceName}`,
-                    data: {
-                      state: '',
-                      attributes: {
-                        battery_voltage: x.dy,
-                        battery_level: battPercentage(x.dy),
-                        latitude: x.lat,
-                        longitude: x.lng,
-                        location_name: x.name,
-
-                      }
-                    }
+                    data: entityData
                   });
 
-                  console.log('done')
+                  //console.log('done', x, entityData)
                 } catch (err) {
                   console.log('failed', x.id)
                 }
