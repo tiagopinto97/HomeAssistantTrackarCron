@@ -198,7 +198,7 @@ async function updateDevicesToTraccar() {
                       })
                     )
                   }
-                  console.log('test', x, entityData)
+                  //console.log('test', x, entityData)
 
                   await axios.request({
                     ...baseConfig,
