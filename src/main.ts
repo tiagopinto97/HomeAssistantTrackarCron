@@ -1,7 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import axios from 'axios';
-import * as express from 'express';
+import * as express1 from 'express';
+import express from 'express';
 import { env } from 'process';
 const xml2js = require('xml2js');
 
@@ -191,8 +192,8 @@ async function updateDevicesToTraccar() {
                     attributes: Object.fromEntries(
                       trackerArgs.map(arg => {
                         const key = arg.key.includes("_")
-                          ? arg.key.split(/_(.+)/, 2)[1] 
-                          : arg.key                      
+                          ? arg.key.split(/_(.+)/, 2)[1]
+                          : arg.key
                         return [key, arg.value]
                       })
                     )
@@ -226,15 +227,29 @@ async function updateDevicesToTraccar() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Create an Express app
-  const expressApp = express();
+  try {
 
-  // Use the Express app in NestJS
-  app.use(expressApp);
-  await app.listen(3000, () => {
-    updateDevicesToTraccar();
-    setInterval(updateDevicesToTraccar, 8000);
-  });
+    // Create an Express app
+    const expressApp = express1();
+
+    // Use the Express app in NestJS
+    app.use(expressApp);
+    await app.listen(3000, () => {
+      updateDevicesToTraccar();
+      setInterval(updateDevicesToTraccar, 8000);
+    });
+  } catch (_) {
+
+    // Create an Express app
+    const expressApp = express();
+
+    // Use the Express app in NestJS
+    app.use(expressApp);
+    await app.listen(3000, () => {
+      updateDevicesToTraccar();
+      setInterval(updateDevicesToTraccar, 8000);
+    });
+  }
 }
 
 bootstrap();
