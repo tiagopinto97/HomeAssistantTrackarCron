@@ -139,31 +139,69 @@ async function updateDevicesToTraccar() {
           .then(async jsonObject => {
             for (const x of jsonObject.devices) {
               if (isTimestampWithinLast24h(x.positionTime)) {
-                const data = {
-                  id: x.id,
-                  lat: x.lat,
-                  lon: x.lng,
-                  speed: x.speed,
-                  bearing: x.course, 
-                  batt: battPercentage(x.dy),
-                  timestamp: x.positionTime
-                };
-                const updUrl = `${env.BASE_URL}/?${new URLSearchParams(data).toString()}`;
+
+                const deviceName = x.name.toLowerCase().replace(/\s+/g, "_");
+                const updUrl = `${env.BASE_URL}/api/states/`;
 
 
-                let config = {
-                  method: 'get',
-                  url: updUrl,
+                const baseConfig = {
+                  method: 'post',
+                  contentType: "application/json",
+                  headers: {
+                    authorization: 'Bearer ' + env.HATOKEN,
+                  }
                 };
+                /*
+                const trackerArgs = [
+                  { name: 'ID', key: '_id', value: x.id },
+                //  { key: '_bearing', value: x.course },
+                //  { key: '_timestamp', value: x.positionTime },
+                  { name: 'Latitude', key: '_latitude', value: x.lat },
+                  { name: 'Longitude', key: '_longitude', value: x.lng },
+                  { name: 'Speed', key: '_speed', value: x.speed },
+                  { name: 'Battery', key: '_battery', value: x.dy },
+                ]
+
+                //1 request per entity
+                for (const arg of trackerArgs) {
+                  const argConf = {
+                    ...baseConfig,
+                    url: `${updUrl}sensor.micodus_${deviceName}${arg.key}`,
+                    data: {
+                      state: arg.value,
+                      attributes: {
+                        name: `${x.name} - ${arg.name}`
+                      }
+                    },
+                  }
+                  await axios.request(argConf);
+                }
+
+                */
 
                 try {
                   await delay(1000)
-                  await axios.request(config);
+                  await axios.request({
+                    ...baseConfig,
+                    url: `${updUrl}device_tracker.micodus_${deviceName}`,
+                    data: {
+                      state: '',
+                      attributes: {
+                        battery_voltage: x.dy,
+                        battery_level: battPercentage(x.dy),
+                        latitude: x.lat,
+                        longitude: x.lng,
+                        location_name: x.name,
+
+                      }
+                    }
+                  });
+
+                  console.log('done')
                 } catch (err) {
                   console.log('failed', x.id)
                 }
               }
-
             }
           });
       })
