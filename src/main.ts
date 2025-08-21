@@ -3,8 +3,9 @@ import { AppModule } from './app.module';
 import axios from 'axios';
 import * as express1 from 'express';
 import express from 'express';
-import { argv, env } from 'process';
-const xml2js = require('xml2js');
+import { env } from 'process';
+import { getAddressFromLocationIQ, getDistanceFromCoordinates } from './geocoding';
+import { delay, extractJsonObject, isTimestampWithinLast24h } from './helpers';
 
 /**
  * Function that get's the token from the service provider
@@ -27,59 +28,6 @@ async function getToken() {
     return null;
   }
 }
-
-/**
- * Function used to validate if a given timestamp is within the last 24h
- * 
- * @param timestamp timestamp to check
- * @returns if the timestamp is within desired timeline
- */
-function isTimestampWithinLast24h(timestamp: string): boolean {
-  const cleanedTimestamp = timestamp.replace(' ', 'T');
-  const givenDate = new Date(cleanedTimestamp);
-  const now = new Date();
-  const limitTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  return givenDate > limitTime;
-}
-
-/**
- * Function to convert the XML string to a JavaScript object
- * @param xml String that represents the xml data
- * @returns JSON object with the xml data
- */
-function xmlToJs(xml) {
-  return new Promise((resolve, reject) => {
-    const parser = new xml2js.Parser();
-    parser.parseString(xml, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
-}
-
-/**
- * Extract the JSON object from the XML
- * @param xmlString 
- * @returns 
- */
-async function extractJsonObject(xmlString) {
-  try {
-    const xmlObject: any = await xmlToJs(xmlString);
-    const jsonString = xmlObject.string._;
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('Error extracting JSON object from XML:', error);
-    return null;
-  }
-}
-
-/**
- * Function to return a delay promise that can be awaited
- * @param ms desired delay in ms
- * @returns Promise
- */
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-
 
 /**
  * Function that calculates the battery percentage, based on the vehicle battery
@@ -119,11 +67,7 @@ let zones = null;
 const makeDeviceState = (trackerData) => {
   if (zones) {
     for (const zone of zones) {
-      //calculate distance
-      const R = 6371000, toRad = (x: number) => x * Math.PI / 180;
-      const p = toRad(zone?.attributes?.latitude - trackerData.lat), q = toRad(zone?.attributes?.longitude - trackerData.lng);
-      const s = Math.sin(p / 2) ** 2 + Math.cos(toRad(trackerData.lat)) * Math.cos(toRad(zone?.attributes?.latitude)) * Math.sin(q / 2) ** 2;
-      const dist = 2 * R * Math.asin(Math.sqrt(s));
+      const dist = getDistanceFromCoordinates(trackerData.lat, trackerData.lng, zone?.attributes?.latitude, zone?.attributes?.longitude)
       if (dist < zone?.attributes?.radius) {
         return zone?.attributes?.friendly_name;
       }
@@ -175,6 +119,7 @@ async function updateDevicesToTraccar() {
                   }
                 };
 
+                const addressData = await getAddressFromLocationIQ(x.lat, x.lng);
 
                 const trackerArgs = [
                   { name: 'ID', key: '_id', value: x.id },
@@ -190,10 +135,14 @@ async function updateDevicesToTraccar() {
                   { name: 'GPS', key: '_gps', value: x.satellite },
                   { name: 'Glonass', key: '_glonass', value: x.satellitegl },
                   { name: 'Beidou', key: '_beidou', value: x.satellitebd },
+
                 ]
-
-
-
+                if (addressData) {
+                  trackerArgs.push({ name: 'Address', key: '_address', value: addressData?.display_name });
+                  trackerArgs.push({ name: 'City', key: '_city', value: addressData?.address?.city ?? '' });
+                  trackerArgs.push({ name: 'State', key: '_state', value: addressData?.address?.state ?? '' });
+                  trackerArgs.push({ name: 'Country', key: '_country', value: addressData?.address?.country ?? '' });
+                }
 
                 try {
                   await delay(1000)
@@ -233,7 +182,7 @@ async function updateDevicesToTraccar() {
 
                   //console.log('done', x, entityData)
                 } catch (err) {
-                  console.log('failed', x.id)
+                  console.log('failed', x.id, err)
                 }
               }
             }
