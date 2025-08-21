@@ -109,6 +109,28 @@ function battPercentage(batt: string) {
 
 
 let token = null;
+let zones = null;
+/**
+ * Function that based on device coordinates and HA zones returns the adequate state
+ * home, not_home or zone
+ * 
+ * Calculations based on gpt but good enougth for my use
+ */
+const makeDeviceState = (trackerData) => {
+  if (zones) {
+    for (const zone of zones) {
+      //calculate distance
+      const R = 6371000, toRad = (x: number) => x * Math.PI / 180;
+      const p = toRad(zone?.attributes?.latitude - trackerData.lat), q = toRad(zone?.attributes?.longitude - trackerData.lng);
+      const s = Math.sin(p / 2) ** 2 + Math.cos(toRad(trackerData.lat)) * Math.cos(toRad(zone?.attributes?.latitude)) * Math.sin(q / 2) ** 2;
+      const dist = 2 * R * Math.asin(Math.sqrt(s));
+      if (dist < zone?.attributes?.radius) {
+        return zone?.attributes?.friendly_name;
+      }
+    }
+  }
+  return 'not_home';
+}
 
 /**
  * Function that runs every cycle to obtain the location data for all devices.
@@ -188,7 +210,7 @@ async function updateDevicesToTraccar() {
                   }
 
                   const entityData = {
-                    state: '',
+                    state: makeDeviceState(x),
                     attributes: Object.fromEntries(
                       trackerArgs.map(arg => {
                         const key = arg.key.includes("_")
@@ -220,6 +242,30 @@ async function updateDevicesToTraccar() {
   }
 }
 
+/**
+ * Function that runs every 4 hours to get the zones that are set on Homeassitant
+ * As now we dont use trackar, we need to set that state manually
+ */
+const updateHAZones = () => {
+  const axios = require('axios');
+
+  let config = {
+    method: 'get',
+    url: `${env.BASE_URL}/api/states`,
+    headers: {
+      authorization: 'Bearer ' + env.HATOKEN,
+    }
+  };
+
+  axios.request(config)
+    .then((res) => {
+      zones = res.data.filter((entity) => entity.entity_id.startsWith('zone.'));
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+
+}
 
 /**
  * App initializer, calls the updateDevicesToTraccar every 8 secconds, a bit slower than the default for the android app
@@ -227,29 +273,23 @@ async function updateDevicesToTraccar() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  let expressApp;
+  // Create an Express app
   try {
-
-    // Create an Express app
-    const expressApp = express1();
-
-    // Use the Express app in NestJS
-    app.use(expressApp);
-    await app.listen(3000, () => {
-      updateDevicesToTraccar();
-      setInterval(updateDevicesToTraccar, 8000);
-    });
+    expressApp = express1();
   } catch (_) {
-
     // Create an Express app
-    const expressApp = express();
-
-    // Use the Express app in NestJS
-    app.use(expressApp);
-    await app.listen(3000, () => {
-      updateDevicesToTraccar();
-      setInterval(updateDevicesToTraccar, 8000);
-    });
+    expressApp = express();
   }
+
+  // Use the Express app in NestJS
+  app.use(expressApp);
+  await app.listen(3000, () => {
+    updateHAZones();
+    updateDevicesToTraccar();
+    setInterval(updateDevicesToTraccar, 8000);
+    setInterval(updateHAZones, 4 * 60 * 60 * 1000);
+  });
 }
 
 bootstrap();
