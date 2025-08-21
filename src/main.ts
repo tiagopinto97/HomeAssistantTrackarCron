@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import axios from 'axios';
 import * as express1 from 'express';
 import express from 'express';
-import { env } from 'process';
+import { argv, env } from 'process';
 const xml2js = require('xml2js');
 
 /**
@@ -180,9 +180,9 @@ async function updateDevicesToTraccar() {
                   { name: 'ID', key: '_id', value: x.id },
                   { name: 'Latitude', key: '_latitude', value: x.lat },
                   { name: 'Longitude', key: '_longitude', value: x.lng },
-                  { name: 'Speed', key: '_speed', value: x.speed },
-                  { name: 'Battery Voltage', key: '_battery_voltage', value: x.dy },
-                  { name: 'Battery Level', key: '_battery_level', value: battPercentage(x.dy) },
+                  { name: 'Speed', key: '_speed', value: x.speed, unit_of_measurement: 'km/h' },
+                  { name: 'Battery Voltage', key: '_battery_voltage', value: x.dy, unit_of_measurement: 'V' },
+                  { name: 'Battery Level', key: '_battery_level', value: battPercentage(x.dy), unit_of_measurement: '%' },
                   { name: 'Device Name', key: '_device_name', value: x.name },
                   { name: 'Position Time', key: '_position_time', value: x.positionTime },
                   { name: 'Is Stop', key: '_is_stop', value: x.isStop },
@@ -204,6 +204,9 @@ async function updateDevicesToTraccar() {
                       url: `${updUrl}sensor.micodus_${deviceName}${arg.key}`,
                       data: {
                         state: arg.value,
+                        attributes: {
+                          unit_of_measurement: arg.unit_of_measurement
+                        }
                       },
                     }
                     await axios.request(argConf);
